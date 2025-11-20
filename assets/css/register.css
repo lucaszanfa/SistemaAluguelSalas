@@ -1,0 +1,11 @@
+@import url('/assets/css/styles.css');
+
+.container{max-width:480px;margin:60px auto;padding:0 20px}
+.auth-page{display:flex;justify-content:center}
+.auth-card{background:white;padding:40px;border-radius:28px;box-shadow:var(--shadow);width:100%;display:flex;flex-direction:column;gap:16px}
+.auth-card h1{margin:0;font-size:32px;color:var(--brand)}
+#registerForm{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+#registerMessage{min-height:18px}
+@media(max-width:480px){
+  .auth-card{padding:28px}
+}

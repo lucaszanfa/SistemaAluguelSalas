@@ -1,0 +1,4 @@
+@import url('/assets/css/styles.css');
+.container{ max-width:760px; margin:40px auto; padding:0 20px }
+.highlight p{ margin:4px 0 }
+.confirm-actions{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sala - ReservaSalas</title>
+  <link rel="stylesheet" href="/assets/css/room.css">
+</head>
+<body>
+  <!-- header injected by /assets/js/common.js -->
+  <div class="container room-page">
+    <div class="room-hero">
+      <h1 id="roomTitle">Carregando...</h1>
+    </div>
+
+    <div class="info-cards">
+      <div class="mini-card">
+        <span>Capacidade</span>
+        <strong id="infoCapacity">--</strong>
+      </div>
+      <div class="mini-card">
+        <span>Valor por hora</span>
+        <strong id="infoPrice">--</strong>
+      </div>
+      <div class="mini-card">
+        <span>Status</span>
+        <strong id="infoStatus">--</strong>
+      </div>
+      <div class="mini-card">
+        <span>Avaliação</span>
+        <strong id="infoRating">--</strong>
+      </div>
+    </div>
+
+    <div class="room-media">
+      <img id="roomImage" src="" alt="" onerror="this.style.display='none'" />
+    </div>
+
+    <div class="room-details card">
+      <h3>Detalhes:</h3>
+      <ul id="roomList"></ul>
+      <div id="roomFeatures"></div>
+      <div style="margin-top:14px"><button id="reserveBtn" class="btn primary">Reservar</button></div>
+    </div>
+
+    <div class="card review-card">
+      <div class="reviews-header">
+        <div>
+          <p class="eyebrow">Avaliações</p>
+          <h3>O que falam sobre esta sala</h3>
+        </div>
+        <div class="score-box">
+          <div class="score" id="reviewsScore">--</div>
+          <small id="reviewsCount" class="muted">Nenhuma avaliação</small>
+        </div>
+      </div>
+      <div id="reviewsList" class="reviews-list"></div>
+      <div class="review-form">
+        <h4>Deixe sua avaliação</h4>
+        <form id="reviewForm">
+          <div class="form-inline">
+            <div>
+              <label class="label" for="reviewRating">Nota</label>
+              <select id="reviewRating">
+                <option value="5">5 - Excelente</option>
+                <option value="4">4 - Ótimo</option>
+                <option value="3">3 - Bom</option>
+                <option value="2">2 - Regular</option>
+                <option value="1">1 - Ruim</option>
+              </select>
+            </div>
+          </div>
+          <label class="label" for="reviewComment">Comentário</label>
+          <textarea id="reviewComment" rows="3" placeholder="Conte sua experiência"></textarea>
+          <div id="reviewMessage" class="muted" style="min-height:18px;"></div>
+          <button class="btn primary">Enviar avaliação</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const API = '/api';
+  let currentRoomId = null;
+
+  async function load(){
+    const qs = new URLSearchParams(location.search);
+    const id = qs.get('id');
+    if(!id){
+      document.getElementById('roomTitle').innerText = 'Sala não encontrada';
+      return;
+    }
+    currentRoomId = id;
+    try{
+      const res = await fetch(`${API}/rooms/${id}`);
+      if(!res.ok) throw new Error('Erro ao carregar');
+      const room = await res.json();
+      renderRoom(room, id);
+      await loadReviews(id);
+    } catch(e){
+      document.getElementById('roomTitle').innerText = 'Erro ao carregar';
+    }
+  }
+
+  function renderRoom(r, id){
+    document.getElementById('roomTitle').innerText = r.name || 'Sala';
+
+    const infoCapacity = document.getElementById('infoCapacity');
+    const infoPrice = document.getElementById('infoPrice');
+    const infoStatus = document.getElementById('infoStatus');
+    const infoRating = document.getElementById('infoRating');
+    infoCapacity.innerText = r.capacity ? `${r.capacity} pessoas` : '--';
+    infoPrice.innerText = r.price !== undefined ? `R$ ${Number(r.price).toFixed(2)}` : '--';
+    infoStatus.innerText = r.available === false ? 'Reservada' : 'Disponível';
+    infoRating.innerText = '--';
+
+    const img = document.getElementById('roomImage');
+    if(r.image) { img.src = r.image; img.alt = r.name; img.style.display = 'block'; } else { img.style.display = 'none'; }
+
+    const list = document.getElementById('roomList'); list.innerHTML = '';
+    if(r.address) { const li = document.createElement('li'); li.innerHTML = `<strong>Endereço:</strong> ${r.address}`; list.appendChild(li); }
+    if(r.capacity !== undefined) {
+      const li = document.createElement('li'); li.innerHTML = `<strong>Capacidade:</strong> ${r.capacity} pessoas`; list.appendChild(li);
+      infoCapacity.innerText = `${r.capacity} pessoas`;
+    }
+    if(r.price !== undefined) {
+      const li = document.createElement('li'); li.innerHTML = `<strong>R$ ${Number(r.price).toFixed(2)}</strong> hora`; list.appendChild(li);
+      infoPrice.innerText = `R$ ${Number(r.price).toFixed(2)}`;
+    }
+    if(r.description) { const li = document.createElement('li'); li.innerHTML = r.description; list.appendChild(li); }
+
+    const featBox = document.getElementById('roomFeatures'); featBox.innerHTML = '';
+    if(Array.isArray(r.features) && r.features.length){
+      const ul = document.createElement('ul'); ul.className='features';
+      r.features.forEach(f=>{ const li=document.createElement('li'); li.textContent = f; ul.appendChild(li); });
+      featBox.appendChild(ul);
+    }
+
+    const btn = document.getElementById('reserveBtn');
+    const defaultDate = new URLSearchParams(location.search).get('date') || '';
+    btn.onclick = ()=>{
+      const token = localStorage.getItem('token'); if(!token) return alert('Entre para reservar');
+      showReservationModal({
+        date: defaultDate,
+        onConfirm: async ({ date, time })=>{
+          const payload = { userId: token, date };
+          if(time) payload.time = time;
+          const rr = await fetch(`${API}/rooms/${id}/reserve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          const data = await rr.json(); if(!rr.ok) return alert(data.error||'Erro');
+          closeReservationModal();
+          if(data.reservation && data.reservation.id) location.href = `/reservation_confirm.html?id=${data.reservation.id}`;
+        }
+      });
+    };
+  }
+
+  async function loadReviews(roomId){
+    const listBox = document.getElementById('reviewsList');
+    listBox.innerHTML = '<p class="muted">Carregando avaliações...</p>';
+    try{
+      const res = await fetch(`${API}/rooms/${roomId}/reviews`);
+      const items = await res.json();
+      renderReviews(items);
+    } catch(e){
+      listBox.innerHTML = '<p class="muted">Não foi possível carregar as avaliações.</p>';
+    }
+  }
+
+  function renderReviews(items){
+    const listBox = document.getElementById('reviewsList');
+    const infoRating = document.getElementById('infoRating');
+    const reviewsScore = document.getElementById('reviewsScore');
+    const reviewsCount = document.getElementById('reviewsCount');
+
+    if(!items || !items.length){
+      listBox.innerHTML = '<div class="empty-state">Ainda ninguém avaliou esta sala. Seja o primeiro!</div>';
+      infoRating.innerText = '--';
+      reviewsScore.innerText = '--';
+      reviewsCount.innerText = 'Nenhuma avaliação';
+      return;
+    }
+
+    const avg = items.reduce((sum, r)=> sum + Number(r.rating||0), 0) / items.length;
+    infoRating.innerText = `${avg.toFixed(1)} / 5`;
+    reviewsScore.innerText = avg.toFixed(1);
+    reviewsCount.innerText = `${items.length} avaliação${items.length>1?'s':''}`;
+
+    listBox.innerHTML = items.map(r=>{
+      const stars = '★'.repeat(Number(r.rating||0)).padEnd(5, '☆');
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '';
+      const user = r.userName || `Usuário ${r.userId}`;
+      return `
+        <div class="review-item">
+          <div class="review-top">
+            <strong>${user}</strong>
+            <span class="stars">${stars}</span>
+          </div>
+          <p class="muted review-date">${dateStr}</p>
+          <p>${r.comment || ''}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const form = document.getElementById('reviewForm');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if(!currentRoomId) return;
+      const token = localStorage.getItem('token'); if(!token) return alert('Entre para comentar.');
+      const rating = Number(document.getElementById('reviewRating').value || 0);
+      const comment = (document.getElementById('reviewComment').value || '').trim();
+      const msg = document.getElementById('reviewMessage');
+      msg.textContent = '';
+      if(!comment){ msg.textContent = 'Escreva um comentário.'; return; }
+      try{
+        const res = await fetch(`${API}/rooms/${currentRoomId}/reviews`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ userId: token, rating, comment })
+        });
+        const data = await res.json();
+        if(!res.ok){ msg.textContent = data.error || 'Erro ao salvar.'; return; }
+        document.getElementById('reviewComment').value = '';
+        msg.textContent = 'Avaliação enviada!';
+        await loadReviews(currentRoomId);
+      } catch(err){
+        msg.textContent = 'Erro ao enviar avaliação.';
+      }
+    });
+  });
+
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

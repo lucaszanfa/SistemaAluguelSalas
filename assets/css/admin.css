@@ -1,0 +1,23 @@
+@import url('/assets/css/styles.css');
+
+.container{ max-width:1200px; margin:32px auto; padding:0 20px }
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:flex-start}
+.reservation-list .list-card{margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:end}
+.switch{display:flex;align-items:center;gap:10px;background:#f0fbf6;padding:18px;border-radius:16px}
+.switch input{width:auto}
+.form-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:18px;flex-wrap:wrap}
+.room-admin-list{display:flex;flex-direction:column;gap:18px;margin-top:24px}
+.admin-room-card{display:grid;grid-template-columns:160px 1fr auto;gap:20px;align-items:center;padding:18px;border-radius:20px;background:white;box-shadow:var(--shadow)}
+.room-cover{width:160px;height:120px;border-radius:18px;background-size:cover;background-position:center}
+.room-info h4{margin:0 0 6px;color:var(--brand)}
+.room-actions{display:flex;flex-direction:column;gap:10px}
+.form-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+
+@media(max-width:960px){
+  .admin-grid{grid-template-columns:1fr}
+  .admin-room-card{grid-template-columns:120px 1fr;grid-template-areas:"img info" "actions actions"}
+  .admin-room-card .room-cover{grid-area:img;width:120px;height:120px}
+  .admin-room-card .room-info{grid-area:info}
+  .admin-room-card .room-actions{grid-area:actions;flex-direction:row}
+}

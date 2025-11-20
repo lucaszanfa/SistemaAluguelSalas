@@ -1,0 +1,37 @@
+@import url('/assets/css/styles.css');
+
+.container { max-width:1000px; margin:32px auto; padding:0 20px }
+.room-page { display:flex; flex-direction:column; gap:24px }
+.room-hero { background:linear-gradient(120deg,#0f6b5f,#13a08a); color:white; padding:32px; border-radius:28px; box-shadow:var(--shadow); text-align:center }
+.room-hero h1{ margin:0; font-size:42px; font-weight:800 }
+.info-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.mini-card{background:white;border-radius:18px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;text-align:left}
+.mini-card span{font-size:13px;text-transform:uppercase;letter-spacing:0.3px;color:#94a3b8}
+.mini-card strong{font-size:20px;color:var(--brand)}
+.room-media{display:flex;justify-content:center}
+.room-media img{width:100%;max-width:720px;border-radius:24px;box-shadow:0 30px 60px rgba(2,6,23,0.2)}
+.room-details{padding:28px;display:flex;flex-direction:column;gap:16px}
+.room-details h3{margin:0;color:var(--brand)}
+.room-details ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.room-details ul li{padding:12px 0;border-bottom:1px solid #e2e8f0;font-size:16px;color:#475569}
+.room-details ul li strong{display:inline-block;width:120px;color:var(--brand)}
+.features{margin-top:10px;padding-left:18px;columns:2}
+.features li{list-style:disc;margin:6px 0;color:#0f172a}
+.review-card{display:flex;flex-direction:column;gap:18px}
+.reviews-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.score-box{display:flex;flex-direction:column;align-items:flex-end}
+.score{font-size:32px;color:var(--brand);font-weight:800}
+.reviews-list{display:flex;flex-direction:column;gap:12px}
+.review-item{padding:14px 16px;border-radius:14px;background:rgba(240,250,247,0.8);border:1px solid #e2f3ed}
+.review-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.review-date{margin:4px 0 8px}
+.stars{color:#f59e0b;font-weight:700;letter-spacing:1px}
+.review-form form{display:flex;flex-direction:column;gap:10px}
+.form-inline{display:flex;gap:12px;flex-wrap:wrap}
+
+@media(max-width:720px){
+  .room-hero{padding:24px}
+  .room-details{padding:20px}
+  .features{columns:1}
+}
+

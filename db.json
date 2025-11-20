@@ -1,0 +1,95 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin",
+      "email": "admin@exemplo.com",
+      "password": "senha",
+      "isAdmin": true
+    },
+    {
+      "id": 2,
+      "name": "João",
+      "email": "joao@exemplo.com",
+      "password": "1234"
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "name": "Sala Alpha",
+      "capacity": 6,
+      "price": 35,
+      "available": true,
+      "image": "/assets/images/sala1.jpg"
+    },
+    {
+      "id": 2,
+      "name": "Sala Administrativa",
+      "capacity": 35,
+      "price": 350,
+      "available": true,
+      "image": "/assets/images/sala2.jpg"
+    },
+    {
+      "id": 3,
+      "name": "Auditório",
+      "capacity": 50,
+      "price": 220,
+      "available": true,
+      "image": "/assets/images/sala3.jpg"
+    },
+    {
+      "id": 4,
+      "name": "Sala Gamma",
+      "capacity": 4,
+      "price": 25,
+      "available": true,
+      "image": "/assets/images/sala4.jpg"
+    },
+    {
+      "id": 5,
+      "name": "Sala Delta Edited",
+      "capacity": 8,
+      "price": 45,
+      "available": true,
+      "image": "/assets/images/sala5.jpg"
+    },
+    {
+      "id": 6,
+      "name": "Sala Teste",
+      "capacity": 6,
+      "price": 200,
+      "available": true,
+      "image": "/assets/images/sala6.jpg",
+      "address": "Rua Teste",
+      "features": [
+        "televisão",
+        "projetor",
+        "ar condicionado"
+      ]
+    }
+  ],
+  "reservations": [
+    {
+      "id": 1763565787293,
+      "roomId": 2,
+      "userId": "2",
+      "date": "2025-12-22"
+    },
+    {
+      "id": 1763567960709,
+      "roomId": 1,
+      "userId": "2",
+      "date": "2025-11-13",
+      "time": "14:00"
+    }
+  ],
+  "favorites": [
+    {
+      "id": 1763480696637,
+      "userId": "2",
+      "roomId": 2
+    }
+  ]
+}

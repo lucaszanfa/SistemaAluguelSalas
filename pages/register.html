@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registrar - ReservaSalas</title>
+  <link rel="stylesheet" href="/assets/css/register.css">
+</head>
+<body>
+  <div class="container auth-page">
+    <div class="auth-card">
+      <p class="eyebrow">Criar conta</p>
+      <h1>Comece a reservar salas agora</h1>
+      <p class="muted">Centralize suas reservas e receba confirmações em minutos.</p>
+      <form id="registerForm">
+        <label class="label" for="regName">Nome completo</label>
+        <input id="regName" placeholder="Nome e sobrenome" required />
+        <label class="label" for="regEmail">Email corporativo</label>
+        <input id="regEmail" type="email" placeholder="voce@empresa.com" required />
+        <label class="label" for="regPassword">Senha</label>
+        <input id="regPassword" type="password" placeholder="••••••" required />
+        <label class="label" for="regConfirm">Confirme a senha</label>
+        <input id="regConfirm" type="password" placeholder="Repita a senha" required />
+        <button class="btn primary full" type="submit">Criar conta</button>
+      </form>
+      <p id="registerMessage" class="muted"></p>
+      <p class="muted">Já possui conta? <a href="/">Entrar</a></p>
+    </div>
+  </div>
+
+  <script>
+  const API = '/api';
+  document.getElementById('registerForm').addEventListener('submit', registerUser);
+
+  async function registerUser(e){
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+    const confirm = document.getElementById('regConfirm').value.trim();
+    const messageBox = document.getElementById('registerMessage');
+    messageBox.textContent = '';
+
+    if(password !== confirm){
+      messageBox.textContent = 'As senhas precisam ser iguais.';
+      return;
+    }
+
+    try{
+      const res = await fetch(`${API}/register`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if(!res.ok){
+        messageBox.textContent = data.error || 'Não foi possível criar a conta.';
+        return;
+      }
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userName', data.user.name);
+      messageBox.textContent = 'Conta criada com sucesso! Redirecionando...';
+      setTimeout(()=> location.href='/', 1200);
+    } catch(err){
+      messageBox.textContent = 'Erro de conexão. Tente novamente.';
+    }
+  }
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

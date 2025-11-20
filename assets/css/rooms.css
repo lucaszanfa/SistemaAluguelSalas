@@ -1,0 +1,14 @@
+@import url('/assets/css/styles.css');
+
+.container { max-width:1200px; margin:32px auto; padding:0 20px }
+.filter-card{display:flex;flex-direction:column;gap:18px}
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.filter-actions{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.catalogue-grid{margin-top:24px}
+.catalogue-grid .room-card{flex-direction:row;align-items:stretch;gap:18px;padding:18px;min-height:200px}
+.catalogue-grid .room-card .thumb{width:220px;height:160px;flex:0 0 220px;border-radius:16px;overflow:hidden}
+.catalogue-grid .room-card .thumb img{height:100%;width:100%;object-fit:cover}
+.catalogue-grid .room-card .body{padding:0;flex:1}
+.catalogue-grid .room-card .room-actions{margin-top:auto;justify-content:flex-start}
+.catalogue-grid .room-card .room-meta{justify-content:space-between}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}

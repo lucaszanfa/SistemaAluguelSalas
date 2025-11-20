@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Confirmação de Reserva</title>
+  <link rel="stylesheet" href="/assets/css/reservation_confirm.css">
+</head>
+<body>
+  <div class="container">
+    <div class="reservation-confirm">
+      <p class="eyebrow">Tudo certo!</p>
+      <h2>Reserva confirmada</h2>
+      <p>Compartilhe os dados com a sua equipe ou retorne para o catálogo.</p>
+      <div id="box" class="highlight">Carregando...</div>
+      <div class="confirm-actions">
+        <button class="btn ghost dark" onclick="location.href='/'">Voltar para início</button>
+        <button class="btn primary" onclick="location.href='/reservations.html'">Ver minhas reservas</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  const API='/api';
+  async function load(){
+    const qs = new URLSearchParams(location.search); const id = qs.get('id'); if(!id) return document.getElementById('box').innerText='ID ausente';
+    const res = await fetch(`${API}/reservations/${id}`);
+    if(!res.ok) return document.getElementById('box').innerText='Reserva não encontrada';
+    const r = await res.json();
+    const timeLine = r.time ? `<p>Horário: ${r.time}</p>` : '';
+    document.getElementById('box').innerHTML = `<p><strong>Reserva #${r.id}</strong></p><p>Sala: ${r.roomName||r.roomId}</p><p>Data: ${r.date}</p>${timeLine}`;
+  }
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

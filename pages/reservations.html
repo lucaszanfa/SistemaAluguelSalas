@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minhas Reservas</title>
+  <link rel="stylesheet" href="/assets/css/reservations.css">
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <p class="eyebrow">Agenda pessoal</p>
+      <h1>Minhas reservas</h1>
+      <p>Acompanhe as próximas ocupações e gere o comprovante de cada reserva.</p>
+    </div>
+    <div class="card">
+      <div id="list" class="reservation-list"></div>
+    </div>
+  </div>
+  <script>
+  const API='/api';
+  async function load(){
+    const token = localStorage.getItem('token'); if(!token) return document.getElementById('list').innerText='Entre para ver suas reservas';
+    const res = await fetch(`${API}/reservations?userId=${token}`);
+    const items = await res.json(); const box=document.getElementById('list'); box.innerHTML='';
+    if(!items.length) { box.innerHTML='<div class="empty-state">Você ainda não possui reservas.</div>'; return }
+    items.sort((a,b)=> new Date(a.date||0) - new Date(b.date||0));
+    for(const it of items){
+      const div=document.createElement('div'); div.className='list-card';
+      const timeTag = it.time ? `<span class="pill">${it.time}</span>` : '';
+      div.innerHTML=`<div class="info"><strong>${it.roomName||'Sala'}</strong><small>${it.date||'Sem data'}</small></div>
+      <div class="reservation-actions">
+        <span class="tag">#${it.id}</span>
+        ${timeTag}
+        <span class="pill">Total R$ ${it.total||'--'}</span>
+        <button class="btn ghost dark" onclick="location.href='/room.html?id=${it.roomId}'">Ver sala</button>
+        <button class="btn primary" onclick="location.href='/reservation_confirm.html?id=${it.id}'">Comprovante</button>
+        <button class="btn danger" onclick="cancelReservation(${it.id})">Cancelar</button>
+      </div>`;
+      box.appendChild(div);
+    }
+  }
+  async function cancelReservation(id){
+    const token = localStorage.getItem('token');
+    if(!token) return alert('Entre para cancelar.');
+    if(!confirm('Confirmar cancelamento?')) return;
+    const res = await fetch(`${API}/reservations/${id}`, {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: token })
+    });
+    const data = await res.json();
+    if(!res.ok) return alert(data.error || 'Erro ao cancelar');
+    alert(data.message || 'Reserva cancelada');
+    load();
+  }
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

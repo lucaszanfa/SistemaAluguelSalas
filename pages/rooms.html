@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Salas - ReservaSalas</title>
+  <link rel="stylesheet" href="/assets/css/rooms.css">
+</head>
+<body>
+  <!-- header injected by /assets/js/common.js -->
+  <div class="container">
+    <div class="page-header">
+      <p class="eyebrow">Catálogo completo</p>
+      <h1>Salas disponíveis</h1>
+      <p>Refine por data, capacidade mínima e encontre o espaço perfeito para o seu próximo encontro.</p>
+    </div>
+
+    <div class="card filter-card">
+      <h2>Filtros rápidos</h2>
+      <div class="filters-grid">
+        <div>
+          <label class="label" for="search">Palavra-chave</label>
+          <input id="search" placeholder="Buscar por nome..." />
+        </div>
+        <div>
+          <label class="label" for="date">Data desejada</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label class="label" for="capacity">Capacidade mínima</label>
+          <input id="capacity" type="number" placeholder="Ex: 10" />
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn ghost dark" onclick="document.getElementById('search').value='';document.getElementById('date').value='';document.getElementById('capacity').value='';load();">Limpar</button>
+        <button class="btn primary" onclick="load()">Buscar</button>
+      </div>
+    </div>
+
+    <div id="list" class="rooms catalogue-grid"></div>
+  </div>
+
+  <script>
+  const API = '/api';
+  async function load(){
+    const s = encodeURIComponent(document.getElementById('search').value||'');
+    const c = encodeURIComponent(document.getElementById('capacity').value||'');
+    const d = document.getElementById('date').value||'';
+    let url = `${API}/rooms?search=${s}`;
+    if(c) url += `&capacity=${c}`;
+    if(d) url += `&date=${d}`;
+    const res = await fetch(url);
+    const rooms = await res.json();
+    const box = document.getElementById('list'); box.innerHTML='';
+    if(!rooms.length) { box.innerHTML='<div class="empty-state">Nenhuma sala encontrada no filtro atual.</div>'; return; }
+    for (const r of rooms) {
+      const img = r.image || `/assets/images/sala${r.id}.jpg`;
+      const el = document.createElement('div'); el.className='room-card';
+      const statusPill = r.available ? '<span class="pill success">Disponível</span>' : '<span class="pill danger">Ocupada</span>';
+      el.innerHTML = `
+        <a href="/room.html?id=${r.id}"><div class='thumb'><img src='${img}' alt='${r.name}' onerror="this.style.display='none'"></div></a>
+        <div class='body'>
+          <h3><a href="/room.html?id=${r.id}" style="text-decoration:none;color:inherit">${r.name}</a></h3>
+          <div class='room-meta'><span>Capacidade: ${r.capacity} pessoas</span><span>R$ ${r.price}/h</span></div>
+          <div class='badge-row'><span class="pill">Sala #${r.id}</span>${statusPill}</div>
+          <div class='room-actions'><button class="btn primary" onclick="reserve(${r.id})">Reservar</button> <button class="fav-btn" onclick="fav(${r.id})">★ Favoritar</button></div>
+        </div>`;
+      box.appendChild(el);
+    }
+  }
+
+  function reserve(id){
+    const token = localStorage.getItem('token'); if(!token) return alert('Entre para reservar');
+    const defaultDate = document.getElementById('date').value || '';
+    showReservationModal({
+      date: defaultDate,
+      onConfirm: async ({ date, time })=>{
+        const payload = { userId: token, date };
+        if(time) payload.time = time;
+        const res = await fetch(`${API}/rooms/${id}/reserve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if(!res.ok) { alert(data.error||'Erro'); return; }
+        closeReservationModal();
+        const reservation = data.reservation;
+        if(reservation && reservation.id){ location.href = `/reservation_confirm.html?id=${reservation.id}`; return; }
+        alert(data.message||'Reservado');
+        await load();
+      }
+    });
+  }
+
+  async function fav(id){
+    const token = localStorage.getItem('token'); if(!token) return alert('Entre para favoritar');
+    const res = await fetch(`${API}/favorites`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: token, roomId: id }) });
+    const data = await res.json(); alert(data.message||'Atualizado');
+  }
+
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

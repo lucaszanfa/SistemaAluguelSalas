@@ -1,0 +1,5 @@
+@import url('/assets/css/styles.css');
+
+.container{ max-width:900px; margin:32px auto; padding:0 20px }
+.reservation-list .list-card{margin-bottom:16px;flex-wrap:wrap}
+.reservation-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}

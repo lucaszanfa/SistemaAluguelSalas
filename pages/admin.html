@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - ReservaSalas</title>
+  <link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body>
+  <div class="container admin-page">
+    <div class="page-header">
+      <p class="eyebrow">Painel administrativo</p>
+      <h1>Gerencie reservas e salas em um só lugar</h1>
+      <p class="muted">Visualize o andamento das reservas e atualize as salas em tempo real.</p>
+    </div>
+
+    <div class="admin-grid">
+      <div class="card">
+        <h2>Reservas recentes</h2>
+        <div id="list" class="reservation-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="form-header">
+          <div>
+            <p class="eyebrow">Salas</p>
+            <h3 id="formTitle" style="margin:4px 0 0;">Cadastrar nova sala</h3>
+          </div>
+          <p class="muted" id="formHint">Informe os dados principais do espaço.</p>
+        </div>
+        <form id="roomForm" onsubmit="return saveRoom(event)">
+          <div class="form-grid">
+            <div>
+              <label class="label" for="rname">Nome</label>
+              <input id="rname" placeholder="Nome" required />
+            </div>
+            <div>
+              <label class="label" for="rcap">Capacidade</label>
+              <input id="rcap" placeholder="Ex: 20" type="number" min="1" />
+            </div>
+            <div>
+              <label class="label" for="rprice">Preço/h</label>
+              <input id="rprice" placeholder="Ex: 120" type="number" min="0" step="0.5" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="label" for="rimage">Imagem (URL)</label>
+              <input id="rimage" placeholder="https://..." />
+            </div>
+            <div class="switch">
+              <input id="ravail" type="checkbox" checked />
+              <span>Disponível para reservas</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="cancelEdit" class="btn ghost dark" type="button" style="display:none" onclick="resetRoomForm()">Cancelar edição</button>
+            <button id="formSubmit" class="btn primary">Criar sala</button>
+          </div>
+        </form>
+        <div id="rooms" class="room-admin-list"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+  const API='/api';
+  let roomsCache=[];
+  let editingId=null;
+
+  function getAdmin(){
+    const token = localStorage.getItem('token');
+    if(!token){
+      document.getElementById('list').innerHTML='<div class="empty-state">Entre como administrador para visualizar este painel.</div>';
+      document.getElementById('rooms').innerHTML='';
+      return null;
+    }
+    return token;
+  }
+
+  async function load(){
+    const adminId = getAdmin(); if(!adminId) return;
+    const res = await fetch(`${API}/admin/reservations?adminId=${adminId}`);
+    const arr = await res.json();
+    renderReservations(arr);
+    await loadRooms();
+  }
+
+  function renderReservations(arr){
+    const box=document.getElementById('list'); box.innerHTML='';
+    if(!Array.isArray(arr) || !arr.length){
+      box.innerHTML = '<div class="empty-state">Nenhuma reserva cadastrada até o momento.</div>';
+      return;
+    }
+    arr.sort((a,b)=> new Date(b.date || 0) - new Date(a.date || 0));
+    arr.slice(0,8).forEach(a=>{
+      const div=document.createElement('div'); div.className='list-card';
+      div.innerHTML = `
+        <div class="info">
+          <strong>${a.roomName || ('Sala #'+a.roomId)}</strong>
+          <small>${a.date || 'Sem data informada'}</small>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="tag">#${a.id}</span>
+          <button class="btn ghost dark" onclick="cancel(${a.id})">Cancelar</button>
+        </div>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  async function cancel(id){
+    const adminId = getAdmin(); if(!adminId) return;
+    if(!confirm('Confirmar cancelamento da reserva?')) return;
+    const res = await fetch(`${API}/admin/reservations/${id}`, {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ adminId })
+    });
+    const data = await res.json();
+    if(!res.ok) return alert(data.error||'Erro');
+    alert(data.message||'Reserva cancelada');
+    load();
+  }
+
+  async function loadRooms(){
+    const res = await fetch(`${API}/rooms`);
+    roomsCache = await res.json();
+    renderRooms();
+  }
+
+  function renderRooms(){
+    const box=document.getElementById('rooms'); box.innerHTML='';
+    if(!roomsCache.length){
+      box.innerHTML='<div class="empty-state">Cadastre sua primeira sala para começar.</div>';
+      return;
+    }
+    roomsCache.forEach(r=>{
+      const div = document.createElement('div'); div.className='admin-room-card';
+      const img = r.image || `/assets/images/sala${r.id}.jpg`;
+      div.innerHTML = `
+        <div class="room-cover" style="background-image:url('${img}')"></div>
+        <div class="room-info">
+          <h4>${r.name}</h4>
+          <p class="muted">Capacidade ${r.capacity || 0} pessoas • R$ ${r.price || 0}/h</p>
+          <div class="badge-row">
+            <span class="pill">ID ${r.id}</span>
+            <span class="pill ${r.available ? 'success' : 'danger'}">${r.available ? 'Disponível' : 'Indisponível'}</span>
+          </div>
+        </div>
+        <div class="room-actions">
+          <button class="btn ghost dark" onclick="populateRoom(${r.id})">Editar</button>
+          <button class="btn danger" onclick="delRoom(${r.id})">Excluir</button>
+        </div>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  function updateFormState(){
+    const title = document.getElementById('formTitle');
+    const hint = document.getElementById('formHint');
+    const submit = document.getElementById('formSubmit');
+    const cancelBtn = document.getElementById('cancelEdit');
+    if(editingId){
+      title.textContent = 'Editar sala #' + editingId;
+      hint.textContent = 'Atualize os dados e salve para sincronizar com o catálogo.';
+      submit.textContent = 'Salvar alterações';
+      cancelBtn.style.display='inline-flex';
+    } else {
+      title.textContent = 'Cadastrar nova sala';
+      hint.textContent = 'Informe os dados principais do espaço.';
+      submit.textContent = 'Criar sala';
+      cancelBtn.style.display='none';
+    }
+  }
+
+  function populateRoom(id){
+    const room = roomsCache.find(r=> Number(r.id) === Number(id));
+    if(!room) return;
+    editingId = id;
+    document.getElementById('rname').value = room.name || '';
+    document.getElementById('rcap').value = room.capacity || '';
+    document.getElementById('rprice').value = room.price || '';
+    document.getElementById('rimage').value = room.image || '';
+    document.getElementById('ravail').checked = !!room.available;
+    updateFormState();
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function resetRoomForm(){
+    document.getElementById('roomForm').reset();
+    document.getElementById('ravail').checked = true;
+    editingId = null;
+    updateFormState();
+  }
+
+  async function saveRoom(e){
+    e.preventDefault();
+    const adminId = getAdmin(); if(!adminId) return;
+    const name = document.getElementById('rname').value.trim();
+    const capacity = document.getElementById('rcap').value;
+    const price = document.getElementById('rprice').value;
+    const image = document.getElementById('rimage').value.trim();
+    const available = document.getElementById('ravail').checked;
+    if(!name) return alert('Informe o nome da sala.');
+
+    const payload = { adminId, name, capacity, price, available, image };
+    const url = editingId ? `${API}/admin/rooms/${editingId}` : `${API}/admin/rooms`;
+    const method = editingId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok) return alert(data.error||'Erro ao salvar');
+    alert(data.message||'Sala atualizada');
+    resetRoomForm();
+    await loadRooms();
+    return false;
+  }
+
+  async function delRoom(id){
+    const adminId = getAdmin(); if(!adminId) return;
+    if(!confirm('Deseja excluir esta sala permanentemente?')) return;
+    const res = await fetch(`${API}/admin/rooms/${id}`, {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ adminId })
+    });
+    const data = await res.json();
+    if(!res.ok) return alert(data.error||'Erro ao excluir');
+    alert(data.message||'Sala removida');
+    await loadRooms();
+  }
+
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>

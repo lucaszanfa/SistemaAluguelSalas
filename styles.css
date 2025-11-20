@@ -1,0 +1,11 @@
+:root{
+  --brand:#4f46e5;
+  --muted:#666;
+  --bg:#f7f7fb;
+  --card:#ffffff;
+/* Forward compatibility: import redesigned assets CSS */
+@import url('/assets/css/styles.css');
+
+/* Legacy fallback tweaks */
+body{background:#f4f6f7}
+.site-header nav a, .site-header nav button{margin-left:10px;background:transparent;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}

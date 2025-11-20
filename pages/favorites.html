@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Favoritos - ReservaSalas</title>
+  <link rel="stylesheet" href="/assets/css/favorites.css">
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <p class="eyebrow">Seu radar</p>
+      <h1>Salas favoritas</h1>
+      <p>Guarde os espaços que mais gosta e volte para reservar quando precisar.</p>
+    </div>
+    <div class="card">
+      <div id="list" class="favorite-list"></div>
+    </div>
+  </div>
+  <script>
+  const API='/api';
+  async function load(){
+    const token = localStorage.getItem('token'); if(!token) return document.getElementById('list').innerText='Entre para ver favoritos';
+    const res = await fetch(`${API}/favorites?userId=${token}`);
+    const list = await res.json(); const box=document.getElementById('list'); box.innerHTML='';
+    if(!list.length) { box.innerHTML='<div class="empty-state">Nenhuma sala favoritada ainda.</div>'; return }
+    for(const r of list){
+      const el = document.createElement('div'); el.className='list-card'; el.innerHTML=`<div class="info"><strong>${r.name}</strong><small>Capacidade ${r.capacity || 0} pessoas</small></div><button class="btn ghost dark" onclick="location.href='/room.html?id=${r.id}'">Ver detalhes</button>`;
+      box.appendChild(el);
+    }
+  }
+  load();
+  </script>
+  <script src="/assets/js/common.js"></script>
+</body>
+</html>
