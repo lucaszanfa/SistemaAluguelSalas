@@ -27,6 +27,10 @@
           <input id="date" type="date" />
         </div>
         <div>
+          <label class="label" for="time">Horário</label>
+          <input id="time" type="time" />
+        </div>
+        <div>
           <label class="label" for="capacity">Capacidade mínima</label>
           <input id="capacity" type="number" placeholder="Ex: 10" />
         </div>
@@ -46,9 +50,11 @@
     const s = encodeURIComponent(document.getElementById('search').value||'');
     const c = encodeURIComponent(document.getElementById('capacity').value||'');
     const d = document.getElementById('date').value||'';
+    const t = document.getElementById('time').value||'';
     let url = `${API}/rooms?search=${s}`;
     if(c) url += `&capacity=${c}`;
     if(d) url += `&date=${d}`;
+    if(t) url += `&time=${t}`;
     const res = await fetch(url);
     const rooms = await res.json();
     const box = document.getElementById('list'); box.innerHTML='';

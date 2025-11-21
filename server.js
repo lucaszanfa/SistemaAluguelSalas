@@ -37,17 +37,23 @@ async function isAdmin(userId) {
   return rows.length > 0;
 }
 
-async function getRoomWithAvailability(roomId, date) {
+async function isRoomAvailable(roomId, date, time) {
+  if (!date) return true;
+  const params = { roomId, date };
+  let sql = "SELECT id FROM reservations WHERE room_id = :roomId AND date = :date";
+  if (time) {
+    sql += " AND (time IS NULL OR time = :time)";
+    params.time = time;
+  }
+  const rows = await query(sql, params);
+  return rows.length === 0;
+}
+
+async function getRoomWithAvailability(roomId, date, time) {
   const roomRows = await query("SELECT * FROM rooms WHERE id = :id", { id: roomId });
   if (!roomRows.length) return null;
   const room = roomRows[0];
-  if (date) {
-    const conflict = await query(
-      "SELECT id FROM reservations WHERE room_id = :r AND date = :d LIMIT 1",
-      { r: roomId, d: date }
-    );
-    room.available = conflict.length === 0;
-  }
+  if (date) room.available = await isRoomAvailable(roomId, date, time);
   return room;
 }
 
@@ -84,7 +90,7 @@ app.post("/api/register", asyncHandler(async (req, res) => {
 
 // Rooms list with availability filter
 app.get("/api/rooms", asyncHandler(async (req, res) => {
-  const { search = "", capacity, date } = req.query;
+  const { search = "", capacity, date, time } = req.query;
   const where = [];
   const params = {};
   if (search) {
@@ -100,10 +106,13 @@ app.get("/api/rooms", asyncHandler(async (req, res) => {
   const rooms = await query(sql, params);
 
   if (date) {
-    const busy = await query(
-      "SELECT room_id FROM reservations WHERE date = :d GROUP BY room_id",
-      { d: date }
-    );
+    const busyParams = { d: date };
+    let busySql = "SELECT room_id FROM reservations WHERE date = :d";
+    if (time) {
+      busySql += " AND (time IS NULL OR time = :t)";
+      busyParams.t = time;
+    }
+    const busy = await query(busySql, busyParams);
     const busySet = new Set(busy.map(r => r.room_id));
     rooms.forEach(r => { r.available = !busySet.has(r.id); });
   }
@@ -114,8 +123,8 @@ app.get("/api/rooms", asyncHandler(async (req, res) => {
 // Room by id
 app.get('/api/rooms/:id', asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
-  const { date } = req.query;
-  const room = await getRoomWithAvailability(id, date);
+  const { date, time } = req.query;
+  const room = await getRoomWithAvailability(id, date, time);
   if (!room) return res.status(404).json({ error: 'Sala nao encontrada' });
   res.json(room);
 }));

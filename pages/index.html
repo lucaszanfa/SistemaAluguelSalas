@@ -40,6 +40,8 @@
 
         <input id="filterDate" type="date" />
 
+        <input id="filterTime" type="time" />
+
         <button class="btn ghost dark" onclick="limpar()">Limpar</button>
 
       </div>
@@ -160,6 +162,8 @@
 
       <p style="margin-top: 10px;">Pesquisar por data: <input type="date" id="searchByDate" style="margin-left:8px;" /></p>
 
+      <p style="margin-top: 10px;">Horário: <input type="time" id="searchByTime" style="margin-left:8px;" /></p>
+
       <p style="font-size: 12px; color:#777; margin-top:20px;">Clique em "Reservar" para simular a reserva.</p>
 
     </aside>
@@ -221,12 +225,14 @@ async function carregarSalas() {
     const cap = encodeURIComponent(document.getElementById('capacidade').value || '');
 
     const date = document.getElementById('filterDate').value || document.getElementById('searchByDate').value || '';
+    const time = document.getElementById('filterTime').value || document.getElementById('searchByTime').value || '';
 
     let url = `${API_URL}/rooms?search=${search}`;
 
     if (cap) url += `&capacity=${cap}`;
 
     if (date) url += `&date=${date}`;
+    if (time) url += `&time=${time}`;
 
     const res = await fetch(url);
 
@@ -327,7 +333,7 @@ async function login(){ const email = document.getElementById('email').value; co
 
 function logout(){ token=null;user=null;localStorage.removeItem('token');localStorage.removeItem('userName'); favorites=[]; carregarSalas(); }
 
-function limpar(){ document.getElementById('search').value=''; document.getElementById('capacidade').value=''; document.getElementById('disponivel').checked=false; document.getElementById('ordenar').value='recomendado'; render(); }
+function limpar(){ document.getElementById('search').value=''; document.getElementById('capacidade').value=''; document.getElementById('disponivel').checked=false; document.getElementById('ordenar').value='recomendado'; document.getElementById('filterDate').value=''; const sb = document.getElementById('searchByDate'); if(sb) sb.value=''; const st = document.getElementById('searchByTime'); if(st) st.value=''; const ft = document.getElementById('filterTime'); if(ft) ft.value=''; render(); }
 
 document.addEventListener('DOMContentLoaded', ()=>{ document.querySelectorAll('input, select').forEach(e=>e.addEventListener('input', carregarSalas)); carregarSalas(); });
 
