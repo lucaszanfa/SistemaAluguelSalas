@@ -27,7 +27,7 @@
     items.sort((a,b)=> new Date(a.date||0) - new Date(b.date||0));
     for(const it of items){
       const div=document.createElement('div'); div.className='list-card';
-      const timeTag = it.time ? `<span class="pill">${it.time}</span>` : '';
+      const timeTag = (it.start_time && it.end_time) ? `<span class="pill">${it.start_time} - ${it.end_time}</span>` : '';
       div.innerHTML=`<div class="info"><strong>${it.roomName||'Sala'}</strong><small>${it.date||'Sem data'}</small></div>
       <div class="reservation-actions">
         <span class="tag">#${it.id}</span>

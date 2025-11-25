@@ -26,7 +26,7 @@
     const res = await fetch(`${API}/reservations/${id}`);
     if(!res.ok) return document.getElementById('box').innerText='Reserva não encontrada';
     const r = await res.json();
-    const timeLine = r.time ? `<p>Horário: ${r.time}</p>` : '';
+    const timeLine = (r.start_time && r.end_time) ? `<p>Horário: ${r.start_time} - ${r.end_time}</p>` : '';
     document.getElementById('box').innerHTML = `<p><strong>Reserva #${r.id}</strong></p><p>Sala: ${r.roomName||r.roomId}</p><p>Data: ${r.date}</p>${timeLine}`;
   }
   load();

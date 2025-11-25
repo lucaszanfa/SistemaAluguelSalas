@@ -91,8 +91,16 @@
         <form class="reservation-form">
           <label class="label" for="reservationDate">Data</label>
           <input id="reservationDate" type="date" required />
-          <label class="label" for="reservationTime">Horário (opcional)</label>
-          <input id="reservationTime" type="time" />
+          <div class="form-inline">
+            <div style="flex:1">
+              <label class="label" for="reservationStart">Início</label>
+              <input id="reservationStart" type="time" required />
+            </div>
+            <div style="flex:1">
+              <label class="label" for="reservationEnd">Término</label>
+              <input id="reservationEnd" type="time" required />
+            </div>
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn ghost dark cancel-modal">Cancelar</button>
             <button type="submit" class="btn primary">Confirmar reserva</button>
@@ -104,7 +112,8 @@
     reservationModal.wrapper = wrapper;
     reservationModal.form = wrapper.querySelector('form');
     reservationModal.date = wrapper.querySelector('#reservationDate');
-    reservationModal.time = wrapper.querySelector('#reservationTime');
+    reservationModal.start = wrapper.querySelector('#reservationStart');
+    reservationModal.end = wrapper.querySelector('#reservationEnd');
     reservationModal.message = wrapper.querySelector('.reservation-message');
     reservationModal.submit = wrapper.querySelector('button[type="submit"]');
     const closeButtons = wrapper.querySelectorAll('.close-modal, .cancel-modal');
@@ -118,14 +127,19 @@
     e.preventDefault();
     if(!reservationModal.onConfirm) return;
     const date = reservationModal.date.value;
-    const time = reservationModal.time.value;
+    const startTime = reservationModal.start.value;
+    const endTime = reservationModal.end.value;
     reservationModal.message.textContent = '';
     if(!date){
       reservationModal.message.textContent = 'Selecione uma data para continuar.';
       reservationModal.date.focus();
       return;
     }
-    const payload = { date, time };
+    if(!startTime || !endTime){
+      reservationModal.message.textContent = 'Informe horário de início e término.';
+      return;
+    }
+    const payload = { date, startTime, endTime };
     reservationModal.submit.disabled = true;
     reservationModal.submit.textContent = 'Enviando...';
     const result = reservationModal.onConfirm(payload);
@@ -146,7 +160,8 @@
     ensureReservationModal();
     reservationModal.onConfirm = opts && typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
     reservationModal.date.value = opts && opts.date ? opts.date : '';
-    reservationModal.time.value = opts && opts.time ? opts.time : '';
+    reservationModal.start.value = opts && opts.startTime ? opts.startTime : '';
+    reservationModal.end.value = opts && opts.endTime ? opts.endTime : '';
     reservationModal.message.textContent = '';
     reservationModal.wrapper.classList.add('open');
     setTimeout(()=> reservationModal.date.focus(), 50);

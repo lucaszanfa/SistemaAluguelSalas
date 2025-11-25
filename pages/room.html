@@ -137,14 +137,18 @@
     }
 
     const btn = document.getElementById('reserveBtn');
-    const defaultDate = new URLSearchParams(location.search).get('date') || '';
+    const qs = new URLSearchParams(location.search);
+    const defaultDate = qs.get('date') || '';
+    const defaultStart = qs.get('startTime') || '';
+    const defaultEnd = qs.get('endTime') || '';
     btn.onclick = ()=>{
       const token = localStorage.getItem('token'); if(!token) return alert('Entre para reservar');
       showReservationModal({
         date: defaultDate,
-        onConfirm: async ({ date, time })=>{
-          const payload = { userId: token, date };
-          if(time) payload.time = time;
+        startTime: defaultStart,
+        endTime: defaultEnd,
+        onConfirm: async ({ date, startTime, endTime })=>{
+          const payload = { userId: token, date, startTime, endTime };
           const rr = await fetch(`${API}/rooms/${id}/reserve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
           const data = await rr.json(); if(!rr.ok) return alert(data.error||'Erro');
           closeReservationModal();

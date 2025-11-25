@@ -27,8 +27,12 @@
           <input id="date" type="date" />
         </div>
         <div>
-          <label class="label" for="time">Horário</label>
-          <input id="time" type="time" />
+          <label class="label" for="startTime">Início</label>
+          <input id="startTime" type="time" />
+        </div>
+        <div>
+          <label class="label" for="endTime">Término</label>
+          <input id="endTime" type="time" />
         </div>
         <div>
           <label class="label" for="capacity">Capacidade mínima</label>
@@ -50,11 +54,12 @@
     const s = encodeURIComponent(document.getElementById('search').value||'');
     const c = encodeURIComponent(document.getElementById('capacity').value||'');
     const d = document.getElementById('date').value||'';
-    const t = document.getElementById('time').value||'';
+    const start = document.getElementById('startTime').value||'';
+    const end = document.getElementById('endTime').value||'';
     let url = `${API}/rooms?search=${s}`;
     if(c) url += `&capacity=${c}`;
     if(d) url += `&date=${d}`;
-    if(t) url += `&time=${t}`;
+    if(start && end) url += `&startTime=${start}&endTime=${end}`;
     const res = await fetch(url);
     const rooms = await res.json();
     const box = document.getElementById('list'); box.innerHTML='';
@@ -78,11 +83,14 @@
   function reserve(id){
     const token = localStorage.getItem('token'); if(!token) return alert('Entre para reservar');
     const defaultDate = document.getElementById('date').value || '';
+    const defaultStart = document.getElementById('startTime').value || '';
+    const defaultEnd = document.getElementById('endTime').value || '';
     showReservationModal({
       date: defaultDate,
-      onConfirm: async ({ date, time })=>{
-        const payload = { userId: token, date };
-        if(time) payload.time = time;
+      startTime: defaultStart,
+      endTime: defaultEnd,
+      onConfirm: async ({ date, startTime, endTime })=>{
+        const payload = { userId: token, date, startTime, endTime };
         const res = await fetch(`${API}/rooms/${id}/reserve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const data = await res.json();
         if(!res.ok) { alert(data.error||'Erro'); return; }

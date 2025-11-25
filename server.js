@@ -37,23 +37,41 @@ async function isAdmin(userId) {
   return rows.length > 0;
 }
 
-async function isRoomAvailable(roomId, date, time) {
-  if (!date) return true;
-  const params = { roomId, date };
-  let sql = "SELECT id FROM reservations WHERE room_id = :roomId AND date = :date";
-  if (time) {
-    sql += " AND (time IS NULL OR time = :time)";
-    params.time = time;
-  }
-  const rows = await query(sql, params);
-  return rows.length === 0;
+function toMinutes(str) {
+  if (!str) return null;
+  const [h, m] = String(str).split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
 }
 
-async function getRoomWithAvailability(roomId, date, time) {
+function overlaps(startA, endA, startB, endB) {
+  if (startA === null || endA === null || startB === null || endB === null) return true;
+  return startA < endB && startB < endA;
+}
+
+async function isRoomAvailable(roomId, date, startTime, endTime) {
+  if (!date) return true;
+  const params = { roomId, date };
+  let sql = "SELECT start_time AS startTime, end_time AS endTime, time FROM reservations WHERE room_id = :roomId AND date = :date";
+  const rows = await query(sql, params);
+  if (!rows.length) return true;
+  const startMin = toMinutes(startTime);
+  const endMin = toMinutes(endTime);
+  for (const rv of rows) {
+    // compat: reservas antigas sem intervalo bloqueiam o dia todo
+    if (!rv.startTime || !rv.endTime) return false;
+    const rStart = toMinutes(rv.startTime);
+    const rEnd = toMinutes(rv.endTime);
+    if (overlaps(startMin, endMin, rStart, rEnd)) return false;
+  }
+  return true;
+}
+
+async function getRoomWithAvailability(roomId, date, startTime, endTime) {
   const roomRows = await query("SELECT * FROM rooms WHERE id = :id", { id: roomId });
   if (!roomRows.length) return null;
   const room = roomRows[0];
-  if (date) room.available = await isRoomAvailable(roomId, date, time);
+  if (date) room.available = await isRoomAvailable(roomId, date, startTime, endTime);
   return room;
 }
 
@@ -90,7 +108,7 @@ app.post("/api/register", asyncHandler(async (req, res) => {
 
 // Rooms list with availability filter
 app.get("/api/rooms", asyncHandler(async (req, res) => {
-  const { search = "", capacity, date, time } = req.query;
+  const { search = "", capacity, date, startTime, endTime } = req.query;
   const where = [];
   const params = {};
   if (search) {
@@ -106,15 +124,20 @@ app.get("/api/rooms", asyncHandler(async (req, res) => {
   const rooms = await query(sql, params);
 
   if (date) {
-    const busyParams = { d: date };
-    let busySql = "SELECT room_id FROM reservations WHERE date = :d";
-    if (time) {
-      busySql += " AND (time IS NULL OR time = :t)";
-      busyParams.t = time;
-    }
-    const busy = await query(busySql, busyParams);
-    const busySet = new Set(busy.map(r => r.room_id));
-    rooms.forEach(r => { r.available = !busySet.has(r.id); });
+    const busy = await query(
+      "SELECT room_id, start_time AS startTime, end_time AS endTime, time FROM reservations WHERE date = :d",
+      { d: date }
+    );
+    rooms.forEach(r => {
+      const conflicts = busy.filter(b => b.room_id === r.id).some(rv => {
+        if (!startTime || !endTime) return true; // se filtro sem horário, basta ter reserva no dia
+        const s = toMinutes(startTime); const e = toMinutes(endTime);
+        if (s === null || e === null) return true;
+        if (!rv.startTime || !rv.endTime) return true;
+        return overlaps(s, e, toMinutes(rv.startTime), toMinutes(rv.endTime));
+      });
+      r.available = !conflicts;
+    });
   }
 
   res.json(rooms);
@@ -123,8 +146,8 @@ app.get("/api/rooms", asyncHandler(async (req, res) => {
 // Room by id
 app.get('/api/rooms/:id', asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
-  const { date, time } = req.query;
-  const room = await getRoomWithAvailability(id, date, time);
+  const { date, startTime, endTime } = req.query;
+  const room = await getRoomWithAvailability(id, date, startTime, endTime);
   if (!room) return res.status(404).json({ error: 'Sala nao encontrada' });
   res.json(room);
 }));
@@ -132,23 +155,31 @@ app.get('/api/rooms/:id', asyncHandler(async (req, res) => {
 // Reserve room
 app.post("/api/rooms/:id/reserve", asyncHandler(async (req, res) => {
   const roomId = Number(req.params.id);
-  const { userId, date, time } = req.body || {};
-  if (!userId || !date) return res.status(400).json({ error: "userId e date sao necessarios" });
+  const { userId, date, startTime, endTime } = req.body || {};
+  if (!userId || !date || !startTime || !endTime) return res.status(400).json({ error: "userId, date, startTime e endTime sao necessarios" });
+
+  const startMin = toMinutes(startTime);
+  const endMin = toMinutes(endTime);
+  if (startMin === null || endMin === null || startMin >= endMin) return res.status(400).json({ error: "Intervalo de horário inválido" });
 
   const room = await getRoomWithAvailability(roomId);
   if (!room) return res.status(404).json({ error: "Sala nao encontrada" });
 
-  const conflict = await query(
-    "SELECT id FROM reservations WHERE room_id = :roomId AND date = :date AND (time IS NULL OR :time IS NULL OR time = :time) LIMIT 1",
-    { roomId, date, time: time || null }
+  const existing = await query(
+    "SELECT start_time AS startTime, end_time AS endTime, time FROM reservations WHERE room_id = :roomId AND date = :date",
+    { roomId, date }
   );
-  if (conflict.length) return res.status(409).json({ error: "Sala ja reservada nessa data" });
+  const conflict = existing.some(rv => {
+    if (!rv.startTime || !rv.endTime) return true;
+    return overlaps(startMin, endMin, toMinutes(rv.startTime), toMinutes(rv.endTime));
+  });
+  if (conflict) return res.status(409).json({ error: "Sala ja reservada no intervalo solicitado" });
 
   const result = await query(
-    "INSERT INTO reservations (room_id, user_id, date, time) VALUES (:roomId, :userId, :date, :time)",
-    { roomId, userId, date, time: time || null }
+    "INSERT INTO reservations (room_id, user_id, date, start_time, end_time) VALUES (:roomId, :userId, :date, :start, :end)",
+    { roomId, userId, date, start: startTime, end: endTime }
   );
-  const newRes = { id: result.insertId, roomId, userId, date, time: time || null };
+  const newRes = { id: result.insertId, roomId, userId, date, startTime, endTime };
   res.json({ message: "Reserva realizada com sucesso", reservation: newRes });
 }));
 
@@ -195,7 +226,13 @@ app.delete('/api/reservations/:id', asyncHandler(async (req, res) => {
 // Reservation by id
 app.get('/api/reservations/:id', asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
-  const rows = await query("SELECT * FROM reservations WHERE id = :id", { id });
+  const rows = await query(
+    `SELECT rv.*, r.name AS roomName
+     FROM reservations rv
+     LEFT JOIN rooms r ON r.id = rv.room_id
+     WHERE rv.id = :id`,
+    { id }
+  );
   if (!rows.length) return res.status(404).json({ error: 'Reserva nao encontrada' });
   res.json(rows[0]);
 }));
